@@ -1,10 +1,22 @@
-const { UserInputError } = require("apollo-server-express");
+const { AuthenticationError } = require("apollo-server-express");
 const { User } = require("../models");
 const { signToken } = require("../utils/auth");
 
 const resolvers = {
   Query: {
-    test: () => 1,
+    me: async (parent, args, context) => {
+      if (context.user) {
+        const userData = await User.findOne({ _id: context.user._id }).select(
+          "-__v -password"
+        );
+        return userData;
+      }
+      throw new AuthenticationError("Not logged in");
+    },
+    // get all users
+    users: async () => {
+      return User.find().select("-__v -password").populate("savedBooks");
+    },
   },
   Mutation: {
     async createUser(parent, args) {
@@ -20,6 +32,43 @@ const resolvers = {
         console.log(error);
         throw new UserInputError("Username and email must be unique");
       }
+    },
+    loginUser: async (parent, { email, password }) => {
+      const user = await User.findOne({ email });
+      if (!user) {
+        throw new AuthenticationError("No user found with this email address");
+      }
+      const correctPw = await user.isCorrectPassword(password);
+
+      if (!correctPw) {
+        throw new AuthenticationError("Incorrect credentials");
+      }
+      const token = signToken(user);
+      return { token, user };
+    },
+    saveBook: async (parent, body, context) => {
+      if (context.user) {
+        const user = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $addToSet: { savedBooks: body } },
+          { new: true, runValidators: false }
+        );
+
+        return user;
+      }
+      throw new AuthenticationError("You need to be logged in!");
+    },
+    removeBook: async (parent, args, context) => {
+      if (context.user) {
+        const user = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $pull: { savedBooks: args } },
+          { new: true }
+        );
+
+        return user;
+      }
+      throw new AuthenticationError("You need to be logged in!");
     },
   },
 };

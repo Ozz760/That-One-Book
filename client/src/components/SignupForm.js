@@ -7,7 +7,7 @@ import Auth from "../utils/auth";
 
 const SignupForm = () => {
   // set initial form state
-  const [createUser,] = useMutation(CREATE_USER);
+  const [createUser] = useMutation(CREATE_USER);
   const [userFormData, setUserFormData] = useState({
     username: "",
     email: "",
@@ -34,8 +34,8 @@ const SignupForm = () => {
     }
 
     try {
-      //get result from creating user 
-      const {data} = await createUser({ variables: userFormData })
+      //get result from creating user
+      const { data } = await createUser({ variables: userFormData });
       Auth.login(data.createUser.token);
     } catch (err) {
       console.error(err);
