@@ -1,6 +1,9 @@
-const { AuthenticationError } = require("apollo-server-express");
+const {
+  AuthenticationError,
+  UserInputError,
+} = require("apollo-server-express");
 const { User } = require("../models");
-const { signToken } = require("../utils/auth");
+const { signToken, authMiddleware } = require("../utils/auth");
 
 const resolvers = {
   Query: {
@@ -43,13 +46,18 @@ const resolvers = {
       if (context.user) {
         const user = await User.findOneAndUpdate(
           { _id: context.user._id },
-          { $addToSet: { savedBooks: { 
-            authors,
-            description,
-            bookId,
-            image,
-            link,
-            title } } },
+          {
+            $addToSet: {
+              savedBooks: {
+                authors,
+                description,
+                bookId,
+                image,
+                link,
+                title,
+              },
+            },
+          },
           { new: true, runValidators: false }
         );
 
@@ -61,13 +69,13 @@ const resolvers = {
       if (context.user) {
         const user = await User.findOneAndUpdate(
           { _id: context.user._id },
-          { $pull: { savedBooks:  { 
-            authors,
-            description,
-            bookId,
-            image,
-            link,
-            title } } },
+          {
+            $pull: {
+              savedBooks: {
+                bookId,
+              },
+            },
+          },
           { new: true }
         );
 
